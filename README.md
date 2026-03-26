@@ -197,19 +197,8 @@ Examples:
 4. Runtime and performance summary per model.
 5. Optional export cell for zipped outputs.
 
-## Reporting and Presentation Docs
-Use this file for manager-facing update:
-- PROJECT_UPDATE_AND_MANAGER_BRIEF.md
-
-It includes:
-- Scope and delivery summary
-- Reliability improvements
-- Business value
-- Slide-ready presentation script
-- One-minute executive summary
-
 ## Credits
-- BasicSR framework by xinntao and contributors
+- BasicSR framework by xPixelGroup and contributors
 - ESRGAN and Real-ESRGAN model families by the original authors/contributors
 
 ## License Note
