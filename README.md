@@ -108,7 +108,7 @@ Top-level files in this workspace:
 
 ## Quick Start (Colab/Kaggle)
 
-<a target="_blank" href="https://colab.research.google.com/github/akashshah3/image-super-resolution/blob/master/ESRGAN_single_image_pipeline.ipynb">
+<a target="_blank" href="https://github.com/akashshah3/image-super-resolution/blob/master/multimodel_single_image_enhancement_pipeline.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
