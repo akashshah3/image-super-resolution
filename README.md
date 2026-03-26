@@ -32,7 +32,7 @@ This project takes the original demo-style ESRGAN notebook and turns it into a s
 
 ### 1) Streamlined Single-Image Pipeline
 Implemented in:
-- ESRGAN_single_image_pipeline.ipynb
+- multimodel_single_image_enhancement_pipeline.ipynb
 
 Features:
 - Clones BasicSR at runtime (for ephemeral notebook environments)
@@ -63,13 +63,13 @@ Observed issue:
 
 Fixes:
 - ESRGAN downloads via BasicSR official downloader script
-- RealESRGAN_x4plus uses fallback URLs across releases
+- RealESRGAN_x4plus downloads from a single validated release URL
 - RealESRGAN_general_x4v3 downloads from explicit stable URL
 
 ## Repository Structure
 
 Top-level files in this workspace:
-- ESRGAN_single_image_pipeline.ipynb: Main runnable enhancement notebook
+- multimodel_single_image_enhancement_pipeline.ipynb: Main runnable enhancement notebook
 - PROJECT_UPDATE_AND_MANAGER_BRIEF.md: Delivery summary and manager presentation notes
 - plan.md: Implementation roadmap (if present in your branch/history)
 - BasicSR/: Upstream framework cloned in runtime and available in workspace
@@ -113,7 +113,7 @@ Top-level files in this workspace:
 </a>
 
 ### Step 1: Open the notebook
-- ESRGAN_single_image_pipeline.ipynb
+- multimodel_single_image_enhancement_pipeline.ipynb
 
 ### Step 2: Run setup cells in order
 - Clone repo cell
@@ -137,7 +137,7 @@ SELECTED_MODELS = ['ESRGAN', 'RealESRGAN_x4plus', 'RealESRGAN_general_x4v3']
 
 ## Notebook Cell Guide
 
-Typical sequence in ESRGAN_single_image_pipeline.ipynb:
+Typical sequence in multimodel_single_image_enhancement_pipeline.ipynb:
 1. Introduction markdown
 2. Runtime clone/setup
 3. Dependency install
