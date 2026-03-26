@@ -1,252 +1,195 @@
-# Image Enhancement Pipeline (BasicSR + ESRGAN + Real-ESRGAN + SwinIR Denoising)
+# Image Enhancement Pipeline
 
-A practical, notebook-first image enhancement project built on top of BasicSR.
+A notebook-first, single-image enhancement workflow built on BasicSR with optional denoising and side-by-side multi-model comparison.
 
-This project takes the original demo-style ESRGAN notebook and turns it into a streamlined, reusable pipeline for:
-- Single-image enhancement
-- Optional denoising pre-processing
-- Multi-model visual comparison
-- Colab/Kaggle-friendly execution
-- GPU-first inference with CPU fallback
-
-## Table of Contents
-1. Project Goals
-2. What Is Implemented
-3. Repository Structure
-4. Models Included
-5. End-to-End Workflow
-6. Quick Start (Colab/Kaggle)
-7. Notebook Cell Guide
-8. Output Artifacts
-9. Troubleshooting
-10. Current Limitations
-11. Roadmap
-12. Reporting and Presentation Docs
-
-## Project Goals
-- Convert a long research/demo notebook into a clean production-style inference flow.
-- Make enhancement easy for one input image with minimal setup friction.
-- Support comparing multiple models on the same input for quality evaluation.
-- Keep the solution runnable in hosted notebook environments.
-
-## What Is Implemented
-
-### 1) Streamlined Single-Image Pipeline
-Implemented in:
+Primary entry point:
 - multimodel_single_image_enhancement_pipeline.ipynb
 
-Features:
-- Clones BasicSR at runtime (for ephemeral notebook environments)
-- Installs dependencies and sets up BasicSR package
-- Accepts one image via upload or direct path
-- Runs super-resolution inference
-- Saves output image
-- Shows side-by-side preview
+## What This Project Does
 
-### 2) Multi-Model Comparison (Implementation 1)
-Added model comparison in the same notebook:
+- Enhances one input image using one or more super-resolution models.
+- Optionally denoises the input before enhancement.
+- Saves all outputs to a unified results directory.
+- Visualizes input, denoised image (if enabled), and all model outputs.
+- Runs in Colab, Kaggle, or local Jupyter.
+
+## Models Included
+
+Denoising models:
+- SwinIR color denoising
+  - SwinIR_color_dn_noise15
+  - SwinIR_color_dn_noise25
+  - SwinIR_color_dn_noise50
+- RIDNet (optional; requires compatible checkpoint)
+
+Enhancement models:
 - ESRGAN
 - RealESRGAN_x4plus
 - RealESRGAN_general_x4v3
 
-Features:
-- Config-driven model selection (`SELECTED_MODELS`)
-- Registry-based model definitions (`MODEL_CONFIGS`)
-- Mixed architecture support:
-  - RRDBNet
-  - SRVGGNetCompact
-- Single inference pass per selected model
-- Unified visual comparison panel
+## Refactored Notebook Architecture
 
-### 3) Download Reliability Hardening
-Observed issue:
-- Direct release URL failures (HTTP 404) for some model weights
+The notebook is organized as clear stages:
 
-Fixes:
-- ESRGAN downloads via BasicSR official downloader script
-- RealESRGAN_x4plus downloads from a single validated release URL
-- RealESRGAN_general_x4v3 downloads from explicit stable URL
+1. Shared utilities and runtime detection
+- Logging setup
+- Runtime context detection (Colab/Kaggle/local)
+- Command execution helpers
 
-### 4) Optional Denoising Preprocessing (Implementation 2)
-Added denoising before enhancement inference in the same notebook.
+2. Dependency setup
+- Installs PyTorch, BasicSR requirements, and BasicSR editable package
 
-Features:
-- Config-driven denoise toggle and model selection:
-  - ENABLE_DENOISING
-  - DENOISE_MODEL
-- Denoising model registry:
-  - SwinIR color denoising (noise15, noise25, noise50)
-  - RIDNet (when `RIDNet.pth` is available)
-- Denoised intermediate image is saved to output directory
-- Enhancement models run on denoised input when enabled
-- Final visualization supports input vs denoised vs enhanced outputs
+3. Download manager
+- Downloads model checkpoints with retry behavior
+- Uses a centralized model download registry
 
-## Repository Structure
+4. Typed configuration
+- Defines ModelConfig and PipelineConfig
+- Validates selected denoise/enhancement models
 
-Top-level files in this workspace:
-- multimodel_single_image_enhancement_pipeline.ipynb: Main runnable enhancement notebook
-- PROJECT_UPDATE_AND_MANAGER_BRIEF.md: Delivery summary and manager presentation notes
-- plan.md: Implementation roadmap (if present in your branch/history)
-- BasicSR/: Upstream framework cloned in runtime and available in workspace
+5. Checkpoint diagnostics (optional)
+- Inspects checkpoint key structure
+- Gives RIDNet compatibility hints
 
-## Models Included
+6. Input resolution
+- Upload mode for Colab
+- Direct path mode for Kaggle/local
 
-### Denoising (SwinIR)
-- Type: Transformer-based color denoising model family
-- Use case: remove noise before super-resolution to improve final restoration quality
-- Weight paths:
-  - experiments/pretrained_models/SwinIR/005_colorDN_DFWB_s128w8_SwinIR-M_noise15.pth
-  - experiments/pretrained_models/SwinIR/005_colorDN_DFWB_s128w8_SwinIR-M_noise25.pth
-  - experiments/pretrained_models/SwinIR/005_colorDN_DFWB_s128w8_SwinIR-M_noise50.pth
+7. Inference pipeline
+- Modular classes:
+  - ImageProcessor
+  - ModelRegistry
+  - InferenceEngine
+  - EnhancementPipeline
+- Produces a single result object: PIPELINE_RESULT
 
-### Denoising (RIDNet)
-- Type: CNN-based denoising model
-- Use case: alternative denoiser option in the same pipeline
-- Weight path:
-  - experiments/pretrained_models/RIDNet/RIDNet.pth
+8. Visualization
+- Renders side-by-side comparison from PIPELINE_RESULT
 
-### Enhancement
+9. Validation
+- Smoke checks output files and result schema
 
-### ESRGAN
-- Type: RRDB-based super-resolution model
-- Use case: strong perceptual SR baseline
-- Weight path:
-  - experiments/pretrained_models/ESRGAN/ESRGAN_SRx4_DF2KOST_official-ff704c30.pth
+## Quick Start
 
-### RealESRGAN_x4plus
-- Type: RRDB-based real image restoration model
-- Use case: robust real-world image enhancement
-- Weight path:
-  - experiments/pretrained_models/RealESRGAN/RealESRGAN_x4plus.pth
-
-### RealESRGAN_general_x4v3
-- Type: SRVGG-based compact model
-- Use case: efficient general restoration
-- Weight path:
-  - experiments/pretrained_models/RealESRGAN/realesr-general-x4v3.pth
-
-## End-to-End Workflow
-1. Clone BasicSR in notebook runtime.
-2. Install Python dependencies.
-3. Download enhancement and denoising model weights.
-4. Choose input mode:
-- Upload one image (Colab)
-- Provide direct file path (Kaggle/local)
-5. Configure denoising (optional).
-6. Select one or more enhancement models.
-7. Run denoising (optional) and inference.
-8. Save denoised and enhanced outputs in a results directory.
-9. Visualize input, denoised image, and all outputs side by side.
-
-## Quick Start (Colab/Kaggle)
-
-<a target="_blank" href="https://github.com/akashshah3/image-super-resolution/blob/master/multimodel_single_image_enhancement_pipeline.ipynb">
+## 1) Open the notebook
+- multimodel_single_image_enhancement_pipeline.ipynb
+<a target="_blank" href="https://colab.research.google.com/github/akashshah3/image-super-resolution/blob/master/multimodel_single_image_enhancement_pipeline.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
-### Step 1: Open the notebook
-- multimodel_single_image_enhancement_pipeline.ipynb
+## 2) Run from top to bottom once
+Run all cells in order to ensure dependencies and model files are available.
 
-### Step 2: Run setup cells in order
-- Clone repo cell
-- Install dependencies cell
-- Download model weights cell
+## 3) Update user settings in the configuration cell
+Change fields in PIPELINE_CONFIG:
+- use_upload
+- input_image_path
+- enable_denoising
+- denoise_model_name
+- selected_models
 
-### Step 3: Configure input, denoising, and models
-In the configuration cell:
-- Set `USE_UPLOAD = True` for Colab upload flow
-- Or set `USE_UPLOAD = False` and define `INPUT_IMAGE_PATH`
-- Set `ENABLE_DENOISING` to enable/disable denoise pre-processing
-- Set `DENOISE_MODEL` (for example: `SwinIR_color_dn_noise25`)
-- Set `SELECTED_MODELS` to the models you want to compare
+Typical examples:
 
-RIDNet note:
-- To use `DENOISE_MODEL = 'RIDNet'`, place `RIDNet.pth` at `experiments/pretrained_models/RIDNet/RIDNet.pth`.
-- Optionally set `RIDNET_MODEL_URL` in the model-download cell to auto-download from your own direct URL.
-
-Example:
 ```python
-SELECTED_MODELS = ['ESRGAN', 'RealESRGAN_x4plus', 'RealESRGAN_general_x4v3']
+# Colab upload flow
+PIPELINE_CONFIG.use_upload = True
+PIPELINE_CONFIG.input_image_path = ''
+
+# Local/Kaggle file path flow
+PIPELINE_CONFIG.use_upload = False
+PIPELINE_CONFIG.input_image_path = 'datasets/upload/sample.png'
+
+# Denoising + comparison models
+PIPELINE_CONFIG.enable_denoising = True
+PIPELINE_CONFIG.denoise_model_name = 'SwinIR_color_dn_noise25'
+PIPELINE_CONFIG.selected_models = ['ESRGAN', 'RealESRGAN_x4plus', 'RealESRGAN_general_x4v3']
 ```
 
-### Step 4: Run inference and visualize
-- Run inference cell to generate outputs
-- Run visualization cell to compare quality
-
-## Notebook Cell Guide
-
-Typical sequence in multimodel_single_image_enhancement_pipeline.ipynb:
-1. Introduction markdown
-2. Runtime clone/setup
-3. Dependency install
-4. Model weight download
-5. Input mode explanation
-6. Config (`USE_UPLOAD`, `INPUT_IMAGE_PATH`, `ENABLE_DENOISING`, `DENOISE_MODEL`, `SELECTED_MODELS`, `MODEL_CONFIGS`)
-7. Input acquisition (upload/path)
-8. Denoise (optional) + multi-model inference
-9. Side-by-side comparison display
+## 4) Run input -> inference -> visualization -> validation
+- Resolve input path
+- Run modular pipeline
+- Inspect visual comparison
+- Confirm smoke checks pass
 
 ## Output Artifacts
 
 Default output directory:
 - results/compare
 
-Naming convention:
+Output files:
 - <input_stem>_<model_name>.png
-- <input_stem>_<denoise_model>_denoised.png (when denoising is enabled)
+- <input_stem>_<denoise_model>_denoised.png (if denoising enabled)
 
-Examples:
-- photo_ESRGAN.png
-- photo_RealESRGAN_x4plus.png
-- photo_RealESRGAN_general_x4v3.png
+Runtime result object:
+- PIPELINE_RESULT['input_path']
+- PIPELINE_RESULT['denoised_path']
+- PIPELINE_RESULT['enhancements']
+- PIPELINE_RESULT['metadata']
+
+## How To Add a New Model
+
+If the architecture already exists in ModelRegistry.build_model:
+1. Add a new ModelConfig entry under AVAILABLE_MODEL_CONFIGS.
+2. Add the new model name to PIPELINE_CONFIG.selected_models.
+
+If the architecture is new:
+1. Add the new ModelConfig entry.
+2. Extend ModelRegistry.build_model with a builder branch for the new arch.
+3. Keep state_key_priority aligned with the checkpoint format.
+
+## Environment Notes
+
+Colab:
+- Upload mode works via google.colab.files.upload().
+
+Kaggle/local:
+- Prefer direct path mode with use_upload = False.
+
+GPU/CPU:
+- Pipeline uses CUDA when available.
+- Falls back to CPU automatically if CUDA is unavailable.
 
 ## Troubleshooting
 
-### 1) HTTP 404 while downloading weights
-- Re-run the download cell (it includes fallback handling).
-- If a model still fails, temporarily remove it from `SELECTED_MODELS`.
+1. Import warnings in editor (for example google.colab or basicsr)
+- These can appear before running setup cells.
+- Run the setup/dependency cells first.
 
-### 2) CUDA not available
-- Notebook automatically falls back to CPU.
-- Expect slower inference on CPU.
+2. Missing checkpoint file
+- Re-run the download stage.
+- Verify expected file path under experiments/pretrained_models.
 
-### 3) Import/module errors
-- Ensure setup cells were run in order from top.
-- Re-run dependency and setup cells after runtime restart.
+3. RIDNet loading fails
+- Checkpoint may be incompatible with BasicSR RIDNet implementation.
+- Keep ridnet_allow_fallback enabled and set a SwinIR fallback.
 
-### 4) Input image not found
-- For direct path mode, verify `INPUT_IMAGE_PATH` exactly.
-- For upload mode, rerun upload cell and confirm the printed path.
+4. Input path not found
+- Use a valid absolute/relative path when use_upload is False.
+- In upload mode, rerun upload cell and confirm the logged path.
 
-### 5) Model architecture mismatch
-- Ensure model is mapped to the correct architecture in `MODEL_CONFIGS`:
-  - RRDB models -> `arch: 'rrdb'`
-  - realesr-general-x4v3 -> `arch: 'srvgg'`
-
-### 6) Denoising weights missing
-- Ensure the Step 3 download cell completed successfully for SwinIR denoising checkpoints.
-- Set `ENABLE_DENOISING = False` to continue enhancement without denoising if needed.
+5. No output images generated
+- Verify selected_models is not empty.
+- Run validation cell to pinpoint missing artifacts.
 
 ## Current Limitations
-- Single-image mode only (no folder batch mode yet).
-- Visual comparison is qualitative (no metric table yet).
-- Download step depends on external network access.
+
+- Single-image mode only.
+- No built-in quantitative quality metrics table yet.
+- External model download depends on network availability.
 
 ## Roadmap
 
-### Next major item
-- Add quality metrics and runtime benchmarking for denoise + enhancement outputs.
-
-### Planned improvements
-1. Denoise toggle and strength controls.
-2. Before/after denoise preview.
-3. Optional quality metrics (PSNR/SSIM when GT is available).
-4. Runtime and performance summary per model.
-5. Optional export cell for zipped outputs.
+- Add optional quality metrics (PSNR/SSIM where GT exists).
+- Add runtime benchmarking per model.
+- Add batch folder processing mode.
+- Add optional output export packaging.
 
 ## Credits
-- BasicSR framework by xPixelGroup and contributors
-- ESRGAN and Real-ESRGAN model families by the original authors/contributors
 
-## License Note
-This project uses the upstream BasicSR codebase and pretrained models. Refer to the respective upstream repository license files for usage and redistribution conditions.
+- BasicSR by XPixelGroup and contributors
+- ESRGAN and Real-ESRGAN model authors and contributors
+- SwinIR and RIDNet authors and contributors
+
+## License
+
+This workspace uses upstream BasicSR code and model assets. Review license files in BasicSR and associated pretrained model sources before redistribution or commercial use.
